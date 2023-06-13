@@ -88,20 +88,30 @@ jobs:
         - os: macos-11
           dist-args: --artifacts=local --target=aarch64-apple-darwin --target=x86_64-apple-darwin
           install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.4/cargo-dist-v0.0.4-installer.sh | sh
-        - os: ubuntu-20.04
+        - os: ubuntu-latest
           dist-args: --artifacts=local --target=x86_64-unknown-linux-gnu
           install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.4/cargo-dist-v0.0.4-installer.sh | sh
+          container: amazonlinux:2  
         - os: windows-2019
           dist-args: --artifacts=local --target=x86_64-pc-windows-msvc
           install-dist: irm  https://github.com/axodotdev/cargo-dist/releases/download/v0.0.4/cargo-dist-v0.0.4-installer.ps1 | iex
 
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Install dependencies
+        run: |
+          yum -y update
+          yum -y install tar gzip which xz
+        if: runner.os == 'Linux'
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update 1.67.1 --no-self-update && rustup default 1.67.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.67.1
+          targets: wasm32-unknown-unknown
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Run cargo-dist
