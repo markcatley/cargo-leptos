@@ -1,22 +1,16 @@
 use crate::compile::{front_cargo_process, server_cargo_process};
 use crate::config::{Config, Project};
-use crate::ext::anyhow::{Context, Result, anyhow};
+use crate::ext::anyhow::{anyhow, Context, Result};
 use crate::logger::GRAY;
 
 pub async fn test_all(conf: &Config) -> Result<()> {
-    let mut first_failed_project = None;
-
     for proj in &conf.projects {
-        if !test_proj(proj).await? && first_failed_project.is_none() {
-            first_failed_project = Some(proj);
+        if !test_proj(proj).await? {
+            return Err(anyhow!("Tests failed for {}", proj.name));
         }
     }
 
-    if let Some(proj) = first_failed_project {
-        Err(anyhow!("Tests failed for {}", proj.name))
-    } else {
-        Ok(())
-    }
+    Ok(())
 }
 
 pub async fn test_proj(proj: &Project) -> Result<bool> {

@@ -11,15 +11,17 @@ use crate::signal::Interrupt;
 
 pub async fn end2end_all(conf: &Config) -> Result<()> {
     for proj in &conf.projects {
-        end2end_proj(proj).await?;
+        if !end2end_proj(proj).await? {
+            return Err(anyhow!("Failed to run end2end on {}", proj.name));
+        }
     }
     Ok(())
 }
 
-pub async fn end2end_proj(proj: &Arc<Project>) -> Result<()> {
+pub async fn end2end_proj(proj: &Arc<Project>) -> Result<bool> {
     if let Some(e2e) = &proj.end2end {
         if !super::build::build_proj(proj).await.dot()? {
-            return Ok(());
+            return Ok(false);
         }
 
         let server = serve::spawn(proj).await;
@@ -31,7 +33,7 @@ pub async fn end2end_proj(proj: &Arc<Project>) -> Result<()> {
     } else {
         log::info!("end2end the Crate.toml package.metadata.leptos.end2end_cmd parameter not set")
     }
-    Ok(())
+    Ok(true)
 }
 
 async fn try_run(cmd: &str, dir: &Utf8Path) -> Result<()> {
